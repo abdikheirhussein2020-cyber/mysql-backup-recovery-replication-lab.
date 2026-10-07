@@ -1,0 +1,222 @@
+============================================================
+MYSQL BACKUP, PITR AND REPLICATION
+WINDOWS COMMAND PROMPT COMMANDS
+===============================
+
+============================================================
+STEP 1 — LOGICAL BACKUP
+=======================
+
+mysqldump -u root -p school > school_backup.sql
+
+============================================================
+VERIFY BACKUP FILE
+==================
+
+dir school_backup.sql
+
+============================================================
+CREATE BACKUP VERIFICATION DATABASE
+===================================
+
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS bootcamp_check;"
+
+============================================================
+RESTORE LOGICAL BACKUP
+======================
+
+mysql -u root -p bootcamp_check < school_backup.sql
+
+============================================================
+VERIFY RESTORED DATABASE
+========================
+
+mysql -u root -p -e "USE bootcamp_check; SHOW TABLES; SELECT * FROM students;"
+
+============================================================
+STEP 2 — CREATE FULL BASE BACKUP
+================================
+
+mysqldump -u root -p --single-transaction --routines --triggers --events school > school_base_backup.sql
+
+============================================================
+VERIFY BASE BACKUP
+==================
+
+dir school_base_backup.sql
+
+============================================================
+STEP 3 — CREATE PITR DATABASE BACKUP
+====================================
+
+mysqldump -u root -p --single-transaction pitr_lab > pitr_base_backup.sql
+
+============================================================
+VERIFY PITR BACKUP
+==================
+
+dir pitr_base_backup.sql
+
+============================================================
+RESTORE PITR BASE BACKUP
+========================
+
+mysql -u root -p pitr_lab < pitr_base_backup.sql
+
+============================================================
+CHECK CURRENT BINARY LOG POSITION
+=================================
+
+mysql -u root -p -e "SHOW MASTER STATUS;"
+
+============================================================
+DISPLAY BINARY LOGS
+===================
+
+mysql -u root -p -e "SHOW BINARY LOGS;"
+
+============================================================
+STEP 3 — INSPECT BINARY LOG
+===========================
+
+mysqlbinlog --verbose "C:\ProgramData\MySQL\MySQL Server 8.0\Data\YOUR_BINLOG_FILE"
+
+============================================================
+INSPECT BINARY LOG UP TO A SPECIFIC TIME
+========================================
+
+mysqlbinlog --stop-datetime="YYYY-MM-DD HH:MM:SS" --verbose "C:\ProgramData\MySQL\MySQL Server 8.0\Data\YOUR_BINLOG_FILE"
+
+============================================================
+SAVE BINLOG EVENTS TO A FILE
+============================
+
+mysqlbinlog --stop-datetime="YYYY-MM-DD HH:MM:SS" --verbose "C:\ProgramData\MySQL\MySQL Server 8.0\Data\YOUR_BINLOG_FILE" > pitr_events.txt
+
+============================================================
+REPLAY BINARY LOG FOR POINT-IN-TIME RECOVERY
+============================================
+
+mysqlbinlog --stop-datetime="YYYY-MM-DD HH:MM:SS" "C:\ProgramData\MySQL\MySQL Server 8.0\Data\YOUR_BINLOG_FILE" | mysql -u root -p
+
+============================================================
+POSITION-BASED BINLOG REPLAY
+============================
+
+mysqlbinlog --start-position=START_POSITION --stop-position=STOP_POSITION "C:\ProgramData\MySQL\MySQL Server 8.0\Data\YOUR_BINLOG_FILE" | mysql -u root -p
+
+============================================================
+STEP 4 — REPLICA DIRECTORY
+==========================
+
+mkdir "C:\ProgramData\MySQL\MySQL Server 8.0\ReplicaData"
+
+============================================================
+CREATE REPLICA LOG DIRECTORY
+============================
+
+mkdir "C:\ProgramData\MySQL\MySQL Server 8.0\ReplicaLogs"
+
+============================================================
+INITIALIZE REPLICA
+==================
+
+mysqld --initialize-insecure --datadir="C:\ProgramData\MySQL\MySQL Server 8.0\ReplicaData"
+
+============================================================
+CREATE replica.cnf
+==================
+
+(
+echo [mysqld]
+echo port=3307
+echo server-id=2
+echo datadir=C:/ProgramData/MySQL/MySQL Server 8.0/ReplicaData
+echo log-bin=C:/ProgramData/MySQL/MySQL Server 8.0/ReplicaLogs/replica-bin
+echo relay-log=C:/ProgramData/MySQL/MySQL Server 8.0/ReplicaLogs/replica-relay-bin
+) > "C:\ProgramData\MySQL\MySQL Server 8.0\replica.cnf"
+
+============================================================
+START REPLICA SERVER
+====================
+
+mysqld --defaults-file="C:\ProgramData\MySQL\MySQL Server 8.0\replica.cnf" --console
+
+============================================================
+CONNECT TO REPLICA
+==================
+
+mysql -u root -P 3307
+
+============================================================
+CREATE REPLICA SEED
+===================
+
+mysqldump -u root -p --databases school > "C:\Users\NENAP\Desktop\school_replica_seed.sql"
+
+============================================================
+RESTORE REPLICA SEED
+====================
+
+mysql -u root -P 3307 < "C:\Users\NENAP\Desktop\school_replica_seed.sql"
+
+============================================================
+CONNECT TO PRIMARY
+==================
+
+mysql -u root -P 3306
+
+============================================================
+CONNECT TO REPLICA
+==================
+
+mysql -u root -P 3307
+
+============================================================
+IMPORTANT
+=========
+
+The following values are placeholders:
+
+YOUR_BINLOG_FILE
+YOUR_BINLOG_POSITION
+START_POSITION
+STOP_POSITION
+YYYY-MM-DD HH:MM:SS
+
+They must be replaced with the actual values from your
+MySQL server.
+
+The current binary-log information can be obtained with:
+
+SHOW MASTER STATUS;
+
+and:
+
+SHOW BINARY LOGS;
+
+============================================================
+COMMAND LOCATION
+================
+
+Windows commands such as:
+
+mysqldump
+mysql
+mysqlbinlog
+mysqld
+
+are executed in Windows Command Prompt.
+
+SQL commands such as:
+
+SHOW MASTER STATUS;
+SHOW BINARY LOGS;
+START REPLICA;
+SHOW REPLICA STATUS\G;
+
+are executed in MySQL Workbench or the mysql client.
+
+============================================================
+END OF WINDOWS COMMANDS
+=======================
